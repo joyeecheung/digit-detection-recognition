@@ -16,37 +16,40 @@ CASCADE_FILE = '../asset/classifier2/cascade.xml'
 FONT_FILE = 'arial.ttf'
 FONT_SIZE = 30
 TEST_FONT = '5'
+TRAIN_SIZE = 10000
 
 
 def train(images, labels):
     svc = svm.SVC(kernel='linear')
-    svc.fit(images, labels)
+    svc.fit(images, labels, )
     return svc
 
 
 def get_font_size(font):
     return max(font.getsize(TEST_FONT))
 
+
 def annotate_recognition(im, regions, labels, font, color=255):
     clone = im.copy()
     draw = ImageDraw.Draw(clone)
     size = get_font_size(font)
     for idx, (x, y, w, h) in enumerate(regions):
-        draw.text((x+w, y+h-size), str(labels[idx]), font=font, fill=color)
+        draw.text(
+            (x+w-size, y+h-size), str(labels[idx]), font=font, fill=color)
     return clone
 
 if __name__ == '__main__':
-    img = cv2.imread('../asset/test/7.jpg')
+    img = cv2.imread('../asset/test/8.jpg')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    im = Image.open('../asset/test/7.jpg')
+    im = Image.open('../asset/test/8.jpg')
     digits = detect(gray, CASCADE_FILE)
     results = crop_detection(im.copy(), digits)
 
     images, labels, num, rows, cols = get_data(LABEL_FILE,
                                                IMAGE_FILE)
+    svc = train(images[:TRAIN_SIZE], labels[:TRAIN_SIZE])
     test = [np.array(i.resize(SAMPLE_SIZE)).ravel() for i in results]
 
-    svc = train(images[:10000], labels[:10000])
     labels = svc.predict(test)
     font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
     detected = annotate_detection(im.copy(), digits)
