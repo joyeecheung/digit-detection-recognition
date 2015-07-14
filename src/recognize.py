@@ -1,28 +1,65 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from detect import detect, crop_detection, annotate_detection
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageDraw
 
 import cv2
 import numpy as np
-from load_labels import get_data
 from sklearn import svm
 
 SAMPLE_SIZE = (28, 28)
-LABEL_FILE = '../MNIST/train-labels.idx1-ubyte'
-IMAGE_FILE = '../MNIST/train-images.idx3-ubyte'
-CASCADE_FILE = '../asset/classifier2/cascade.xml'
-FONT_FILE = 'arial.ttf'
-FONT_SIZE = 30
+SZ = 28
 TEST_FONT = '5'
-TRAIN_SIZE = 10000
+
+bin_n = 16  # Number of bins
+svm_params = dict(kernel_type=cv2.SVM_LINEAR,
+                  svm_type=cv2.SVM_C_SVC)
+
+affine_flags = cv2.WARP_INVERSE_MAP | cv2.INTER_LINEAR
 
 
-def train(images, labels):
-    svc = svm.SVC(kernel='linear')
-    svc.fit(images, labels, )
+def deskew(img):
+    m = cv2.moments(img)
+    if abs(m['mu02']) < 1e-2:
+        return img.copy()
+    skew = m['mu11']/m['mu02']
+    M = np.float32([[1, skew, -0.5*SZ*skew], [0, 1, 0]])
+    img = cv2.warpAffine(img, M, (SZ, SZ), flags=affine_flags)
+    return img
+
+
+def hog(img):
+    gx = cv2.Sobel(img, cv2.CV_32F, 1, 0)
+    gy = cv2.Sobel(img, cv2.CV_32F, 0, 1)
+    mag, ang = cv2.cartToPolar(gx, gy)
+    # quantizing binvalues in (0...16)
+    bins = np.int32(bin_n * ang / (2 * np.pi))
+    bin_cells = bins[:10, :10], bins[10:, :10], bins[:10, 10:], bins[10:, 10:]
+    mag_cells = mag[:10, :10], mag[10:, :10], mag[:10, 10:], mag[10:, 10:]
+    hists = [np.bincount(b.ravel(), m.ravel(), bin_n)
+             for b, m in zip(bin_cells, mag_cells)]
+    hist = np.hstack(hists)     # hist is a 64 bit vector
+    return hist
+
+
+def cvtrain(images, labels, num, rows, cols):
+    svc = cv2.SVM()
+    traindata = preprocess(images, rows, cols)
+    responses = np.float32(labels[:, None])
+    svc.train(traindata, responses, params=svm_params)
     return svc
+
+
+def sktrain(images, labels):
+    svc = svm.SVC(kernel='linear')
+    svc.fit(images, labels)
+    return svc
+
+
+def preprocess(images, rows, cols):
+    deskewed = [deskew(im.reshape(rows, cols)) for im in images]
+    hogdata = [hog(im) for im in deskewed]
+    return np.float32(hogdata).reshape(-1, 64)
 
 
 def get_font_size(font):
@@ -37,21 +74,3 @@ def annotate_recognition(im, regions, labels, font, color=255):
         draw.text(
             (x+w-size, y+h-size), str(labels[idx]), font=font, fill=color)
     return clone
-
-if __name__ == '__main__':
-    img = cv2.imread('../asset/test/8.jpg')
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    im = Image.open('../asset/test/8.jpg')
-    digits = detect(gray, CASCADE_FILE)
-    results = crop_detection(im.copy(), digits)
-
-    images, labels, num, rows, cols = get_data(LABEL_FILE,
-                                               IMAGE_FILE)
-    svc = train(images[:TRAIN_SIZE], labels[:TRAIN_SIZE])
-    test = [np.array(i.resize(SAMPLE_SIZE)).ravel() for i in results]
-
-    labels = svc.predict(test)
-    font = ImageFont.truetype(FONT_FILE, FONT_SIZE)
-    detected = annotate_detection(im.copy(), digits)
-    recognized = annotate_recognition(detected, digits, labels, font)
-    recognized.show()
