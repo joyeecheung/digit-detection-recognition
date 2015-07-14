@@ -1,4 +1,12 @@
-## Dependencies
+## Digit Detection & Recognition
+
+### What is it?
+
+Digit detection and recognition with AdaBoost and SVM.
+
+![](preview.jpg)
+
+### Dependencies
 
 These scripts need python 2.7+ and the following libraries to work:
 
@@ -27,7 +35,7 @@ sudo pip install pillow
 
 If you have any problem installing the dependencies, contact the author.
 
-## How to generate the results
+### How to generate the results
 
 Enter the `src` directory, run
 
@@ -38,7 +46,7 @@ python main.py
 It will use images(`.jpg` only) under `test` directory to produce the results. The results will show up in `results` directory. Results generated with OpenCV will have `-cv` in its filename and results generated with sklearn will have `-sk` in its filename.
 
 
-##Directory structure
+### Directory structure
 
 ```
 .
@@ -62,8 +70,8 @@ It will use images(`.jpg` only) under `test` directory to produce the results. T
     └── main.py (generate the results)
 ```
 
-##About
+### About
 
-* [Github repository](https://github.com/joyeecheung/perspective-correction)
+* [Github repository](https://github.com/joyeecheung/digit-detection-recognition)
 * Author: Qiuyi Zhang
-* Time: Apr. 2015
+* Time: Jul. 2015
