@@ -6,6 +6,13 @@ Digit detection and recognition with AdaBoost and SVM.
 
 ![](preview.jpg)
 
+### How it works
+
+1. Train a cascade classifier for detection. The cascade classifier in `classifier/cascade.xml` is trained with 7000 positive samples and 9000 negative samples in 10 stages.
+2. Train a SVM with the MNIST database.
+3. Detect the digits in the image.
+4. For each detected region, scale them to the same size as the samples in MNIST, then use the trained SVM to recognize(classify) the digits. For better results we can deskew the images with their momentum first, then use the HOG descriptors for testing.
+
 ### Dependencies
 
 These scripts need python 2.7+ and the following libraries to work:
@@ -52,7 +59,7 @@ It will use images(`.jpg` only) under `test` directory to produce the results. T
 .
 ├─ README.md
 ├─ doc (documentations, reports)
-│   └── report.pdf
+│   └── ...
 ├─ classifier (OpenCV cascade classifier)
 │   ├── cascade.xml (the classifier parameter file)
 │   └── ...
